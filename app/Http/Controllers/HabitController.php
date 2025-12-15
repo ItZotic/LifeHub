@@ -3,104 +3,144 @@
 namespace App\Http\Controllers;
 
 use App\Models\Habit;
+use App\Models\HabitCompletion;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class HabitController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
-        
-        // Get all habits and update today status
+        $user = auth()->user();
         $habits = Habit::where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->get();
-        
-        // Update completed_today status for all habits
+
+        // Add weekly progress for each habit (last 7 days)
         foreach ($habits as $habit) {
-            $habit->updateTodayStatus();
-        }
-        
-        // Calculate stats
-        $completedToday = $habits->where('completed_today', true)->count();
-        $totalHabits = $habits->count();
-        $longestStreak = $habits->max('streak') ?? 0;
-        $completionRate = $totalHabits > 0 ? ($completedToday / $totalHabits) * 100 : 0;
-        
-        // Weekly data for chart
-        $weeklyData = [];
-        $today = Carbon::today();
-        $days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        
-        for ($i = 6; $i >= 0; $i--) {
-            $date = $today->copy()->subDays($i);
-            $dayName = $days[($date->dayOfWeek + 6) % 7]; // Adjust to Mon-Sun
-            
-            $completed = 0;
-            foreach ($habits as $habit) {
-                if ($habit->completions()->whereDate('completed_date', $date)->exists()) {
-                    $completed++;
-                }
+            $weeklyProgress = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date = Carbon::now()->subDays($i)->toDateString();
+                $weeklyProgress[] = HabitCompletion::where('habit_id', $habit->id)
+                    ->where('completed_date', $date)
+                    ->exists();
             }
+            $habit->weekly_progress = $weeklyProgress;
+        }
+
+        // Calculate stats
+        $totalHabits = $habits->count();
+        $completedToday = $habits->where('completed_today', true)->count();
+        $completionRate = $totalHabits > 0 ? ($completedToday / $totalHabits) * 100 : 0;
+        $longestStreak = $habits->max('streak') ?? 0;
+
+        // Weekly data for chart (MONDAY FIRST)
+        $weeklyData = [];
+        $startOfWeek = Carbon::now()->startOfWeek(Carbon::MONDAY); // Start from Monday
+        
+        for ($i = 0; $i < 7; $i++) {
+            $date = $startOfWeek->copy()->addDays($i);
+            $dayName = $date->format('D'); // Mon, Tue, Wed, etc.
+            
+            $completed = HabitCompletion::whereIn('habit_id', $habits->pluck('id'))
+                ->where('completed_date', $date->toDateString())
+                ->distinct('habit_id')
+                ->count('habit_id');
             
             $weeklyData[] = [
                 'day' => $dayName,
                 'completed' => $completed
             ];
         }
-        
+
         return view('habits.index', compact(
             'habits',
-            'completedToday',
             'totalHabits',
-            'longestStreak',
+            'completedToday',
             'completionRate',
+            'longestStreak',
             'weeklyData'
         ));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'name' => 'required|string|max:255',
-            'color' => 'required|string|in:' . implode(',', Habit::getColors())
+            'color' => 'required|string',
         ]);
 
-        $validated['user_id'] = Auth::id();
-        $validated['streak'] = 0;
-        $validated['completed_today'] = false;
+        Habit::create([
+            'user_id' => auth()->id(),
+            'name' => $request->name,
+            'color' => $request->color,
+            'streak' => 0,
+            'completed_today' => false,
+        ]);
 
-        Habit::create($validated);
-
-        return redirect()->route('habits.index')
-            ->with('success', 'Habit created successfully!');
+        return redirect()->back()->with('success', 'Habit created successfully!');
     }
 
     public function toggle(Habit $habit)
     {
-        // Authorization check
-        if ($habit->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized action.');
+        // Ensure user owns this habit
+        if ($habit->user_id !== auth()->id()) {
+            abort(403);
         }
 
-        $habit->toggleToday();
+        $today = Carbon::today()->toDateString();
+        $wasCompleted = $habit->completed_today;
 
-        return redirect()->back()
-            ->with('success', 'Habit updated!');
+        if ($wasCompleted) {
+            // Uncomplete: remove completion record
+            HabitCompletion::where('habit_id', $habit->id)
+                ->where('completed_date', $today)
+                ->delete();
+
+            $habit->completed_today = false;
+            
+            // Decrease streak
+            if ($habit->streak > 0) {
+                $habit->streak--;
+            }
+        } else {
+            // Complete: add completion record
+            HabitCompletion::firstOrCreate([
+                'habit_id' => $habit->id,
+                'completed_date' => $today,
+            ]);
+
+            $habit->completed_today = true;
+            $habit->last_completed_at = $today;
+
+            // Check if yesterday was completed to maintain streak
+            $yesterday = Carbon::yesterday()->toDateString();
+            $wasCompletedYesterday = HabitCompletion::where('habit_id', $habit->id)
+                ->where('completed_date', $yesterday)
+                ->exists();
+
+            if ($wasCompletedYesterday || $habit->streak == 0) {
+                $habit->streak++;
+            } else {
+                // Streak broken, restart from 1
+                $habit->streak = 1;
+            }
+        }
+
+        $habit->save();
+
+        return redirect()->back();
     }
 
     public function destroy(Habit $habit)
     {
-        // Authorization check
-        if ($habit->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized action.');
+        // Ensure user owns this habit
+        if ($habit->user_id !== auth()->id()) {
+            abort(403);
         }
 
         $habit->delete();
 
-        return redirect()->route('habits.index')
-            ->with('success', 'Habit deleted successfully!');
+        return redirect()->back()->with('success', 'Habit deleted successfully!');
     }
 }

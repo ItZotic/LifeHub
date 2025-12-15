@@ -45,4 +45,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Habit::class);
     }
+
+    public function healthMetrics()
+    {
+        return $this->hasMany(HealthMetric::class);
+    }
 }

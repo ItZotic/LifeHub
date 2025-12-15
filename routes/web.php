@@ -7,10 +7,21 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HabitController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\WeatherController;
+use App\Http\Controllers\HealthController;
+
+// Landing Page (Public)
+Route::get('/', function () {
+    // Redirect to dashboard if already authenticated
+    if (auth()->check()) {
+        return redirect('/dashboard');
+    }
+    return view('landing');
+})->name('home');
 
 // Guest Routes (Login/Register)
 Route::middleware('guest')->group(function () {
-    Route::get('/', [AuthController::class, 'showLogin'])->name('login');
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
@@ -50,13 +61,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::delete('/settings/account', [SettingsController::class, 'deleteAccount'])->name('settings.delete');
     
-    // Health (placeholder)
-    Route::get('/health', function () {
-        return view('health');
-    })->name('health');
+    // Health
+    Route::get('/health', [HealthController::class, 'index'])->name('health');
+    Route::post('/health', [HealthController::class, 'store'])->name('health.store');
     
-    // Weather (placeholder)
-    Route::get('/weather', function () {
-        return view('weather');
-    })->name('weather');
+    // Weather
+    Route::get('/weather', [WeatherController::class, 'index'])->name('weather');
 });
