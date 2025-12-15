@@ -68,7 +68,9 @@ class HealthController extends Controller
         $weeklySteps = [];
         for ($i = 0; $i < 7; $i++) {
             $date = $startOfWeek->copy()->addDays($i);
-            $metric = $weeklyMetrics->firstWhere('date', $date->toDateString());
+            $metric = $weeklyMetrics->first(function($m) use ($date) {
+                return $m->date->format('Y-m-d') === $date->format('Y-m-d');
+            });
             
             $weeklySteps[] = [
                 'day' => $date->format('D'),
@@ -92,7 +94,9 @@ class HealthController extends Controller
         $sleepData = [];
         for ($i = 0; $i < 7; $i++) {
             $date = $startOfWeek->copy()->addDays($i);
-            $metric = $weeklyMetrics->firstWhere('date', $date->toDateString());
+            $metric = $weeklyMetrics->first(function($m) use ($date) {
+                return $m->date->format('Y-m-d') === $date->format('Y-m-d');
+            });
             $totalSleep = $metric ? $metric->sleep_hours : 0;
             
             // Break down sleep phases (roughly)
