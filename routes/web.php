@@ -3,9 +3,11 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HabitController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\WeatherController;
 use Illuminate\Support\Facades\Route;
 
 // Guest routes
@@ -47,9 +49,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/wallet', [WalletController::class, 'store'])->name('wallet.store');
     Route::delete('/wallet/{transaction}', [WalletController::class, 'destroy'])->name('wallet.destroy');
     
+    // Health
+    Route::get('/health', [HealthController::class, 'index'])->name('health.index');
+    Route::post('/health/log', [HealthController::class, 'logActivity'])->name('health.log');
+    Route::patch('/health/{field}', [HealthController::class, 'updateMetric'])->name('health.update');
+    
+    // Weather
+    Route::get('/weather', [WeatherController::class, 'index'])->name('weather.index');
+    Route::post('/weather/refresh', [WeatherController::class, 'refresh'])->name('weather.refresh');
+    
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::post('/settings/avatar', [SettingsController::class, 'updateAvatar'])->name('settings.avatar');
+    Route::put('/settings/appearance', [SettingsController::class, 'updateAppearance'])->name('settings.appearance');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::delete('/settings/account', [SettingsController::class, 'deleteAccount'])->name('settings.delete');
 });

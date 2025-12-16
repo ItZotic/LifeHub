@@ -22,32 +22,44 @@ class HabitController extends Controller
         $totalHabits = $habits->count();
         $completionRate = $totalHabits > 0 ? ($completedToday / $totalHabits) * 100 : 0;
         
-        // Weekly overview data
+        // Weekly overview data - using today as reference
         $weekData = [];
-        $maxCompletions = 0;
+        $maxValue = 0;
         
         for ($i = 0; $i < 7; $i++) {
             $date = Carbon::now()->startOfWeek()->addDays($i);
-            $completions = 0;
-            foreach ($habits as $habit) {
-                if ($habit->completions()->whereDate('completed_date', $date)->exists()) {
-                    $completions++;
+            $isToday = $date->isToday();
+            $isFuture = $date->isFuture() && !$isToday;
+            
+            $completedCount = 0;
+            if (!$isFuture) {
+                foreach ($habits as $habit) {
+                    if ($habit->completions()->whereDate('completed_date', $date)->exists()) {
+                        $completedCount++;
+                    }
                 }
             }
-            $maxCompletions = max($maxCompletions, $completions);
+            
+            $maxValue = max($maxValue, $totalHabits);
+            
             $weekData[] = [
                 'day' => $date->format('D'),
-                'completions' => $completions,
-                'date' => $date
+                'completed' => $completedCount,
+                'total' => $totalHabits,
+                'date' => $date,
+                'isToday' => $isToday,
+                'isFuture' => $isFuture
             ];
         }
         
         // Calculate percentage heights for bars
         foreach ($weekData as &$day) {
-            if ($maxCompletions > 0) {
-                $day['height'] = ($day['completions'] / $maxCompletions) * 100;
+            if ($maxValue > 0 && !$day['isFuture']) {
+                $day['completedHeight'] = ($day['completed'] / $maxValue) * 100;
+                $day['totalHeight'] = ($day['total'] / $maxValue) * 100;
             } else {
-                $day['height'] = 0;
+                $day['completedHeight'] = 0;
+                $day['totalHeight'] = 0;
             }
         }
         

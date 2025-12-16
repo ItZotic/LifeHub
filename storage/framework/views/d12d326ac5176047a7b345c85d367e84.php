@@ -1,8 +1,6 @@
-@extends('layouts.guest')
+<?php $__env->startSection('title', 'Login - LifeHub'); ?>
 
-@section('title', 'Login - LifeHub')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="min-h-screen flex">
     <!-- Left Side - Branding & Features -->
     <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12 flex-col justify-between">
@@ -98,16 +96,16 @@
                 <p class="text-gray-600">Sign in to continue to your dashboard</p>
             </div>
 
-            @if ($errors->any())
+            <?php if($errors->any()): ?>
                 <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                    @foreach ($errors->all() as $error)
-                        <p class="text-sm">{{ $error }}</p>
-                    @endforeach
+                    <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <p class="text-sm"><?php echo e($error); ?></p>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
-            @endif
+            <?php endif; ?>
 
-            <form method="POST" action="{{ route('login') }}">
-                @csrf
+            <form method="POST" action="<?php echo e(route('login')); ?>">
+                <?php echo csrf_field(); ?>
 
                 <div class="mb-4">
                     <label for="email" class="block text-sm font-medium text-gray-900 mb-2">Email Address</label>
@@ -117,7 +115,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
                         </div>
-                        <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
+                        <input id="email" type="email" name="email" value="<?php echo e(old('email')); ?>" required autofocus
                             placeholder="you@example.com"
                             class="w-full pl-10 pr-4 py-3 bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
                     </div>
@@ -151,9 +149,9 @@
                         <input type="checkbox" name="remember" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                         <span class="ml-2 text-sm text-gray-700">Remember me</span>
                     </label>
-                    @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Forgot password?</a>
-                    @endif
+                    <?php if(Route::has('password.request')): ?>
+                        <a href="<?php echo e(route('password.request')); ?>" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Forgot password?</a>
+                    <?php endif; ?>
                 </div>
 
                 <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-lg font-semibold mb-6 flex items-center justify-center transition shadow-sm">
@@ -196,7 +194,7 @@
 
             <p class="text-center text-gray-600">
                 Don't have an account? 
-                <a href="{{ route('register') }}" class="text-blue-600 hover:text-blue-700 font-semibold">Sign up for free</a>
+                <a href="<?php echo e(route('register')); ?>" class="text-blue-600 hover:text-blue-700 font-semibold">Sign up for free</a>
             </p>
         </div>
     </div>
@@ -219,4 +217,5 @@ function togglePassword() {
     }
 }
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.guest', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\ASUS\Desktop\WebSys_Final_Project\New folder (2)\resources\views/auth/login.blade.php ENDPATH**/ ?>
