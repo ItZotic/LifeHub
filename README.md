@@ -1,4 +1,4 @@
-.env file content:
+.env file content (copy through raw or edit function in github then change db details):
 
 APP_NAME=Laravel
 APP_ENV=local
